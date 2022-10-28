@@ -3,32 +3,53 @@ import paypal from "./internal.js";
 
 import { ENV } from "./env.js";
 
-const webhookId = ENV.WEBHOOK_ID;
-const returnBase = ENV.HOST_URL;
-const baseURL = "https://api-m.sandbox.paypal.com";
+const baseURL = ENV.BASE_URL;
 
-const getWebhookInfo= async () => {
+const getWebhookList = async function () {
   const accessToken = await paypal.generateAccessToken();
-  const url = `${baseURL}/v1/notifications/webhooks/${webhookId}`;
+  const url = `${baseURL}/v1/notifications/webhooks`;
   const response = await axios({
     method: 'get',
     url: url, 
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-    },         
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    }
   });
-  return paypal.handleResponse(response);
+  return paypal.handleResponse(response);  
 }
 
-export const updateWebhook = async function () {
+const createWebhook = async function (ngrokURL) {
+  const accessToken = await paypal.generateAccessToken();
+  const url = `${baseURL}/v1/notifications/webhooks`;
+  const endPoint = `${ngrokURL}/api/invoices/paid`;    
+  const response = await axios({
+    method: 'post',
+    url: url, 
+    headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+    },    
+    data: JSON.stringify({
+        "url": endPoint,
+        "event_types": [
+          {
+            "name": "INVOICING.INVOICE.PAID"
+          },
+        ]
+      }),      
+  });
+  return paypal.handleResponse(response);    
+}
+
+const updateWebhook = async function (ngrokURL, webhookId) {
   const accessToken = await paypal.generateAccessToken();
   const url = `${baseURL}/v1/notifications/webhooks/${webhookId}`;
-  const newURL = `${returnBase}/api/orders/capture`;    
+  const endPoint = `${ngrokURL}/api/invoices/paid`;   
   const response = await axios({
     method: 'patch',
     url: url, 
-      headers: {
+    headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
     },    
@@ -36,14 +57,14 @@ export const updateWebhook = async function () {
       {
         "op": "replace",
         "path": "/url",
-        "value": newURL
+        "value": endPoint
       },
       {
         "op": "replace",
         "path": "/event_types",
         "value": [
           {
-            "name": "CHECKOUT.ORDER.APPROVED"
+            "name": "INVOICING.INVOICE.PAID"
           }]
       }
     ]),      
@@ -51,18 +72,14 @@ export const updateWebhook = async function () {
   return paypal.handleResponse(response);    
 }
 
-export const handleWebhook = async function () {
-  const webhook = await getWebhookInfo();
-  const newURL = `${returnBase}/api/orders/capture`;   
-  if (webhook.url === newURL) {
-    console.log("webhook link up to date");
-    return;       
+export const handleWebhook = async function (ngrokURL) {
+  const responseData = await getWebhookList();
+  if (responseData.webhooks.length === 0) {
+    return createWebhook(ngrokURL);
   }
   else {
-    console.log("webhook link updated");
-    return updateWebhook()
+    return updateWebhook(ngrokURL,responseData.webhooks[0].id);
   }
-
 }
 
 export default { handleWebhook };
