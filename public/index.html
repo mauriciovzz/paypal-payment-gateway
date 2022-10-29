@@ -10,25 +10,21 @@
     <p id="payment-link"></p>
 
     <script>
+      const paymentButton = document.getElementById("payment-button"); 
+      
+      paymentButton.onclick = async function processTransaction(){
+        const orderInfo = await fetch("/api/invoices", {
+          method: "POST",
+          body: JSON.stringify({
+              value: document.getElementById("money-input").value,
+          }), 
+          headers: { "Content-type": "application/json; charset=UTF-8" }
+        }).then((response) =>  {return response.json()});
 
-    const paymentButton = document.getElementById("payment-button"); 
-
-    paymentButton.onclick = async function processTransaction(){
-
-      //Request to the server: create order
-      const orderInfo = await fetch("/api/orders", {
-        method: "POST",
-        body: JSON.stringify({
-            value: document.getElementById("money-input").value,
-        }), 
-        headers: { "Content-type": "application/json; charset=UTF-8" }
-      }).then((response) =>  {return response.json()});
-
-      let text = orderInfo.links[1].href
-      let result = text.link(orderInfo.links[1].href);
-      document.getElementById("payment-link").innerHTML = result;
-    }
-
+        let link = orderInfo.href
+        let paymentLink = link.link(orderInfo.href);
+        document.getElementById("payment-link").innerHTML = paymentLink;
+      }
     </script>
   </body>
 </html>
