@@ -47,7 +47,7 @@ fastify.post("/api/invoices", async (req, res) => {
   
 fastify.post("/api/invoices/paid", async (req, res) => {
   try {
-    const invoiceId = req.body.resource.id;
+    const invoiceId = req.body.resource.invoice.id;
     console.log(`-> Invoice ${invoiceId} has been paid.`);
     // Continue with payment process...
   }
@@ -63,7 +63,8 @@ const handleWebhook = async (url) => {
       authtoken: ENV.NGROK_AUTH_TOKEN
     });
     const handledWebhook = await webhook.handleWebhook(ngrokURL);  
-    console.log(`Go to ${ngrokURL} to create an invoice.\n`)
+    console.log(`Go to ${ngrokURL} to create an invoice.`);
+    console.log(`To exit press "ctrl + c".\n`)
   }
   catch (err) {
     res.status(500).send(err.message);
